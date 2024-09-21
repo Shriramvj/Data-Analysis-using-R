@@ -1,0 +1,577 @@
+---
+title: "Module Project 2: Interactive Visualization Assignment"
+subtitle: "INSH 5302 -  Information Design & Visual Analytics"
+author: "Shriram Vijaykumar"
+date: "April 21, 2024"
+output:
+  html_document:
+    code_download: true
+    fig_caption: yes
+    theme: lumen
+    toc: yes
+    toc_depth: 2
+    df_print: kable
+    toc_float:
+      collapsed: no
+---
+
+```{r, message=FALSE}
+# Required packages for our course. Do not delete.
+library(tidyverse)
+library(mosaic)
+library(plotly)
+library(lubridate)
+library(leaflet)
+```
+```{r}
+
+knitr::include_graphics("C:\\Users\\shrir\\OneDrive\\Desktop\\download.jpg")
+
+
+
+```
+```{r, echo=FALSE, out.width='100%'}
+
+knitr::include_graphics("C:\\Users\\shrir\\OneDrive\\Desktop\\Virat Kohli and AB de Villiers wallpaper.jpg")
+
+```
+
+
+# Big-picture
+
+## Research Question
+
+
+*Embarking on this comprehensive analysis, I aim to unravel the multifaceted dynamics of the Indian Premier League (IPL) from 2008 to 2023. My goal is to understand the evolution of team performances, identify the key factors that contribute to match victories, assess the impact of individual players on game outcomes, and explore how venues and match conditions influence these aspects.*
+
+*Performance Trends Over Time*
+*I will begin by examining the win-loss records of teams across the years. Using time series analysis, I'll track performance trends and changes in team strategies. Line graphs and bar charts in R will help visualize these trends and highlight significant shifts in team performances.*
+
+*Key Factors for Winning*
+*Next, I'll delve into the factors that lead to match victories. By conducting regression analysis and possibly logistic regression (for binary outcomes like win or loss), I aim to uncover whether winning the toss, player performance, or other variables significantly affect the match outcome. R's statistical modeling capabilities will be instrumental here.*
+
+*Player Impact*
+*To gauge individual contributions, I'll analyze player statistics using R's data manipulation and analysis packages like dplyr and tidyr. By computing metrics such as run rates, wickets, and player efficiency, I'll pinpoint key players and their impact on the game's results, utilizing scatter plots and correlation matrices for visualization.*
+
+*Venue Influence*
+*Investigating the role of venues, I'll compare match outcomes across different locations, considering factors like home advantage and pitch conditions. Chi-square tests for categorical data analysis might be useful to determine if the venue significantly influences the match result.*
+
+*Throughout this project, I'll rely on R's comprehensive ecosystem of packages like ggplot2 for data visualization.*
+
+* * *
+
+# Data
+
+## Description of data
+
+*The dataset I'm working with is a collection of Indian Premier League (IPL) match data from 2008 to 2023, which I obtained from Kaggle. Kaggle is a popular platform for data science and machine learning that provides a wide range of datasets. This particular dataset encapsulates detailed information about each IPL match, including match dates, participating teams, venues, scores, and individual player performances. It's a comprehensive set, ideal for conducting in-depth analyses of trends, performance metrics, and predictive modeling within the realm of cricket analytics.*
+
+## Load data into R
+
+*Include the code to load your data here. Using the head() function, show the first 10 rows of data. *
+
+```{r, message = FALSE, warning = FALSE}
+
+file_path <- "C:/Users/shrir/OneDrive/Desktop/Ipl-clean-data2008-2023.csv"
+
+# Load the dataset
+ipl <- read.csv(file_path, header = TRUE, stringsAsFactors = FALSE)
+
+# Display the first 10 rows using the head() function
+head(ipl, 10)
+
+
+```
+
+* * *
+
+# Variables
+
+*Using the names() function, show the names of all the columns (i.e. potential variables) in your data set. Delete this when complete.*
+```{r, message = FALSE, warning = FALSE}
+
+names(ipl)
+
+```
+
+The variables I used in my infographic design are:
+
+#season - The IPL season year, which indicates the timeline of each match.
+
+#home_team - The team playing on its home ground for the match.
+
+#away_team - The team playing away from its home ground.
+
+#winner - The team that won the match.
+
+#pom (Player of the Match) - The player who performed exceptionally well and was awarded the Player of the Match.
+
+* * *
+
+# Data Analysis
+
+## Summary Statistics
+
+*Using the favstats() function, calculate the necessary statistics you used to create your data visualization. Delete this when complete.*
+```{r, message = FALSE, warning = FALSE}
+
+# Calculate favorite statistics for home runs
+home_runs_stats <- favstats(~ home_runs, data = ipl)
+print(home_runs_stats)
+
+```
+
+```{r, message = FALSE, warning = FALSE}
+
+# Calculate favorite statistics for away runs
+away_runs_stats <- favstats(~ away_runs, data = ipl)
+print(away_runs_stats)
+
+```
+```{r, message = FALSE, warning = FALSE}
+
+# Display the structure of the dataset
+str(ipl)
+
+# Get a summary for each column to identify potential data issues
+summary(ipl)
+
+```
+
+* * *
+
+# Final Project
+
+## | R-Markdown Report with Interactive Charts
+
+* * *
+```{r, message = FALSE, warning = FALSE}
+
+# Calculate win rates for home and away games
+match_outcomes <- ipl %>%
+  mutate(home_win = ifelse(home_team == winner, 1, 0),
+         away_win = ifelse(away_team == winner, 1, 0)) %>%
+  group_by(home_team) %>%
+  summarise(total_matches = n(),
+            home_wins = sum(home_win, na.rm = TRUE)) %>%
+  ungroup() # Ungroup to make sure plotly can handle it
+
+# Plotting home wins vs. away wins using ggplot2
+g <- ggplot(match_outcomes, aes(x = home_team, y = home_wins, fill = home_team)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Home Wins by Team", x = "Team", y = "Wins") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")  # Hiding the legend as the color is mapped to home_team
+
+# Convert ggplot object to plotly for interactivity
+interactive_plot <- ggplotly(g)
+
+interactive_plot
+```
+*Key takeaways*
+
+*The bar chart depicts the win tallies for IPL teams, underscoring the consistent success of franchises like Mumbai Indians (MI) and Chennai Super Kings (CSK), which have a considerable lead in victories. It's evident that Kochi and Pune Warriors India (PWI) have significantly fewer wins, which is partly explained by their no longer participating in the league, shortening their opportunity to accrue victories. Outliers on the chart indicate seasons that were either exceptionally good or poor for the teams they represent. The chart clearly delineates the longstanding prowess of certain teams in the IPL while also marking the transient presence and challenges faced by others.*
+```{r, message = FALSE, warning = FALSE}
+
+toss_decisions <- ipl %>%
+  group_by(toss_won, decision, winner) %>%
+  summarise(wins = n(), .groups = 'drop') %>%
+  mutate(win_rate = wins / sum(wins))
+
+g <- ggplot(toss_decisions, aes(x = toss_won, y = win_rate, fill = decision)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~winner) +
+  labs(title = "Toss Decision Impact on Match Outcome", x = "Team that Won the Toss", y = "Win Rate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+interactive_plot <- ggplotly(g)
+interactive_plot
+
+```
+*Key Takeaways*
+
+*The visualization reveals patterns and trends regarding how winning the toss and the subsequent decision to bat or field correlates with winning matches in the IPL. By examining the win rates across teams that won the toss, and their choices, insights can be gleaned into whether there is a strategic advantage in winning the toss and if certain teams are more successful when they bat first or chase a target. The use of facet_wrap(~winner) suggests that the impact of toss decisions is being compared directly with match-winning outcomes, potentially indicating that for some teams, toss decisions have a greater impact on their chances of winning a match.*
+```{r, message = FALSE, warning = FALSE}
+
+# Analyzing key player performance
+key_players_performance <- ipl %>%
+  select(home_key_batsman, home_key_bowler, away_key_batsman, away_key_bowler, winner) %>%
+  pivot_longer(cols = c(home_key_batsman, home_key_bowler, away_key_batsman, away_key_bowler), 
+               names_to = "type", values_to = "player") %>%
+  filter(player != "")  # Assuming a blank string indicates no key player listed
+
+# Count how often players are key players in matches
+player_counts <- key_players_performance %>%
+  group_by(player) %>%
+  summarise(counts = n(), .groups = 'drop')
+
+# Top 10 key players
+top_players <- player_counts %>%
+  top_n(10, counts)
+
+# Plotting top players
+g <- ggplot(top_players, aes(x = reorder(player, counts), y = counts, fill = player)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +  # Horizontal bars for better readability
+  labs(title = "Top Key Players by Appearances", x = "Player", y = "Counts") +
+  theme(legend.position = "none")  # Remove the legend to clean up the plot
+
+# Convert ggplot object to plotly for interactivity
+interactive_plot <- ggplotly(g)
+
+# Render the interactive plot
+interactive_plot
+
+```
+*Key Takeaways*
+
+*The horizontal bar chart highlights the top key player pairings by their appearance count in matches. The pairing of Chris Gayle and Virat Kohli stands out with the highest frequency, underscoring their prominence and possibly their impactful contributions to their team's performances. Other notable pairings, such as AB de Villiers with Virat Kohli and the duo of Suresh Raina with MS Dhoni, also feature prominently, reflecting their strategic importance. The chart indicates a trend where successful team outcomes are often associated with the presence of these key players, suggesting their significant influence on the game. It also points to potential prolific partnerships that may have been pivotal in steering their teams to victory.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Plotting interactive bar chart for toss impact
+toss_effect <- ipl %>%
+  group_by(toss_won, decision, winner) %>%
+  summarise(count = n(), .groups = 'drop')
+
+plot_toss_effect <- plot_ly(toss_effect, x = ~toss_won, y = ~count, color = ~decision, type = 'bar', text = ~paste("Winner:", winner)) %>%
+  layout(title = "Impact of Toss Decision on Match Outcomes",
+         xaxis = list(title = "Team that Won the Toss"),
+         yaxis = list(title = "Number of Matches Won"),
+         barmode = 'stack')
+
+# To render in R Markdown
+plot_toss_effect
+
+```
+*Key Takeaways*
+
+*The bar chart provides a visual analysis of how the toss decision impacts match outcomes for various IPL teams. Teams are sorted along the x-axis based on their decisions after winning the toss, split between 'Bowl First' and 'Bat First'. The length of the bars corresponds to the number of matches won following each decision. Teams like Mumbai Indians (MI) show a higher number of wins when choosing to bowl first, which is a common trend among other teams as well, suggesting a preference or strategic advantage in chasing scores. Notably, the chart also shows that for some teams, such as Chennai Super Kings (CSK) and Sunrisers Hyderabad (SRH), victories are substantial regardless of the toss decision, pointing to their overall strong performance.*
+
+*Let us try focusing on Team RCB - Royal Challengers Bengaluru*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Total matches by season
+matches_per_season <- ipl %>%
+  group_by(season) %>%
+  summarise(Total_Matches = n())
+
+# Plot
+g <- ggplot(matches_per_season, aes(x = season, y = Total_Matches)) +
+  geom_line(group = 1, color = "blue") +
+  geom_point(color = "red", size = 3) +
+  labs(title = "Total Matches Played Each Season", x = "Season", y = "Matches")
+ggplotly(g) # Converts ggplot2 to interactive plotly object
+
+
+```
+*Key Takeaways*
+
+*The line graph depicts the total number of IPL matches played in each season over the years. There's a noticeable peak around the early 2010s, indicating a season or seasons with a particularly high number of matches. This peak is followed by a sharp decline and then a period of fluctuation, which could be attributed to changes in league format, the number of participating teams, or external factors such as events that might have led to a reduced number of games. Post-2016, there is a recovery and a return to higher match counts, suggesting a possible expansion or return to the previous format. The graph captures the dynamic nature of the league's structure across different seasons.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Calculate win percentages
+win_percentages <- ipl %>%
+  group_by(winner) %>%
+  summarise(Wins = n()) %>%
+  mutate(Total = nrow(ipl), Win_Percentage = Wins / Total * 100)
+
+# Plot
+g <- ggplot(win_percentages, aes(x = reorder(winner, Win_Percentage), y = Win_Percentage, fill = winner)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Winning Percentage by Team", x = "Team", y = "Win Percentage")
+ggplotly(g)
+
+
+```
+*Key Takeaways*
+
+*Teams like Mumbai Indians (MI), Chennai Super Kings (CSK), and Kolkata Knight Riders (KKR) appear to have the highest win percentages, indicating consistent success in the league. In contrast, teams like Kochi and Pune Warriors India (PWI) have lower winning percentages, which could be due to a variety of factors, including their shorter stints in the IPL. The color-coded bars correspond to different teams, which might represent the team's primary colors or are simply used for differentiation. This chart effectively communicates the historical performance of each team, with clear leaders and teams that may have struggled throughout their time in the IPL.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Convert necessary columns to appropriate data types, if not already
+ipl$season <- as.factor(ipl$season)
+ipl$date <- as.Date(ipl$start_date, format="%d-%m-%Y")
+
+# Aggregate data for visualization
+toss_summary <- ipl %>%
+  group_by(decision) %>%
+  summarise(Count = n())
+
+# Create an interactive pie chart
+plot_ly(toss_summary, labels = ~decision, values = ~Count, type = 'pie', textinfo = 'label+percent',
+        insidetextorientation = 'radial') %>%
+  layout(title = 'Distribution of Toss Decisions (Bat vs Bowl)')
+
+
+```
+*Key Takeaways*
+
+*The pie chart illustrates the distribution of toss decisions between batting first and bowling first in the IPL. It's clear that choosing to bowl first is the more prevalent decision, accounting for 64.1% of the choices, while batting first is less common at 35.9%. This could indicate a strategic preference for chasing targets, or it might reflect the conditions of the pitches and the advantages of knowing the target score. The significant skew towards bowling first may also suggest teams have more confidence in their ability to chase down runs, or it could be influenced by other factors such as evening dew affecting play, which often makes it preferable to bowl first.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Prepare data for stacked area chart
+team_performance <- ipl %>%
+  group_by(season, winner) %>%
+  summarise(Wins = n(), .groups = 'drop')
+
+# Create interactive stacked area chart
+plot_ly(team_performance, x = ~season, y = ~Wins, type = 'scatter', mode = 'lines', stackgroup = 'one', color = ~winner) %>%
+  layout(title = 'Team Performances Across IPL Seasons', xaxis = list(title = 'Season'), yaxis = list(title = 'Wins'))
+
+
+```
+*Key Takeaways*
+
+*The stacked area chart portrays the win counts of IPL teams across seasons, with different colors representing each team. A pattern of fluctuations in performance is noticeable, where some teams like Mumbai Indians (MI) and Chennai Super Kings (CSK) maintain a higher number of wins consistently, suggesting steady performance. In contrast, teams like Pune Warriors India (PWI) and Kochi show a limited presence, indicative of their brief participation in the league. The graph also illustrates the competitive nature of the league, with the changing fortunes of teams like Sunrisers Hyderabad (SRH) and Royal Challengers Bangalore (RCB) throughout the seasons. This visualization effectively captures the dynamic ebb and flow of team success in the IPL over time.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# RCB yearly performance
+rcb_performance <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB") %>%
+  group_by(season) %>%
+  summarise(Wins = sum(winner == "RCB", na.rm = TRUE), Matches = n()) %>%
+  mutate(Win_Percentage = (Wins / Matches) * 100)
+
+# Line chart of wins over the years
+plot_ly(rcb_performance, x = ~season, y = ~Win_Percentage, type = 'scatter', mode = 'lines+markers') %>%
+  layout(title = 'RCB Performance Over the Seasons', xaxis = list(title = 'Season'), yaxis = list(title = 'Win Percentage (%)'))
+
+```
+*Key Takeaways*
+
+*The line graph traces the win percentage of Royal Challengers Bangalore (RCB) across IPL seasons. The graph highlights RCB's fluctuating performance, with notable peaks in the 2009, 2011, and 2016 seasons—years in which the team reached the finals but did not secure the championship. These peaks might reflect the team's strong performance during those seasons, indicating a potential correlation between a higher win percentage during the regular season and the ability to reach the final stages of the tournament. The dips in win percentage in other years point to less successful campaigns. This visualization encapsulates RCB's journey of close contests and their quest for an elusive title victory.*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Prepare data
+match_metrics <- ipl %>%
+  group_by(id) %>%
+  summarise(TotalRuns = sum(as.numeric(home_runs), as.numeric(away_runs)), TotalWickets = sum(as.numeric(home_wickets), as.numeric(away_wickets)), .groups = 'drop')
+
+# Create a bubble chart
+plot_ly(match_metrics, x = ~TotalRuns, y = ~TotalWickets, size = ~TotalRuns, text = ~id, mode = 'markers',
+        marker = list(sizemode = 'area', sizeref = 0.1)) %>%
+  layout(title = 'Correlation Between Runs and Wickets in Matches', xaxis = list(title = 'Total Runs'), yaxis = list(title = 'Total Wickets'))
+
+
+```
+*Key Takeaways*
+
+*This graph is a good example of correlation doesn't usally mean causation:*
+
+*The scatter plot displays a dense cluster of data points, suggesting a possible correlation between total runs and wickets in IPL matches. The concentration of points around the middle of the graph indicates that a majority of the matches see a moderate number of runs scored and wickets taken. However, the spread of the data, particularly along the x-axis for total runs, indicates variability in match scoring. The outliers, particularly those with high run counts and low wicket numbers, might represent innings where batters dominated. Conversely, clusters with lower run counts and higher wicket numbers could depict bowler-friendly matches. The visualization provides an overview of match dynamics but does not show a clear trend or correlation, indicating that high-scoring matches don't necessarily result in fewer wickets, and vice versa.*
+
+
+```{r, message = FALSE, warning = FALSE}
+
+# Toss impact on RCB matches
+rcb_toss_impact <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB") %>%
+  group_by(toss_won, decision, winner) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  filter(toss_won == "RCB")
+
+# Bar chart: Toss decisions vs match outcomes for RCB
+plot_ly(rcb_toss_impact, x = ~decision, y = ~Count, color = ~winner, type = 'bar') %>%
+  layout(title = 'Impact of Toss Decisions on RCB Match Outcomes', xaxis = list(title = 'Toss Decision'), yaxis = list(title = 'Number of Matches'))
+
+
+```
+*Key Takeaways*
+
+*The bar chart illustrates the impact of toss decisions on Royal Challengers Bangalore (RCB) match outcomes against various teams. It compares the number of matches RCB won when deciding to bat first versus bowl first. The chart indicates that RCB has a stark contrast in outcomes based on this decision, with significantly more wins when choosing to bowl first, especially against one team, represented by the prominent yellow bar. This suggests that RCB may have a stronger performance in chasing targets or that the conditions during these matches were more favorable for bowling first. The data also shows that wins after batting first are relatively fewer, which could reflect either a less successful strategy or a sample of fewer matches where this decision was made. Overall, the visualization underscores the importance of the toss and subsequent strategic decisions in the context of RCB's match outcomes.*
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+# Player of the Match awards in RCB wins
+rcb_top_players <- ipl %>%
+  filter(winner == "RCB") %>%
+  group_by(pom) %>%
+  summarise(Awards = n(), .groups = 'drop') %>%
+  arrange(desc(Awards))
+
+# Bar chart: Top RCB players by Player of the Match awards
+plot_ly(rcb_top_players, x = ~pom, y = ~Awards, type = 'bar') %>%
+  layout(title = 'Top RCB Players by Player of the Match Awards', xaxis = list(title = 'Player'), yaxis = list(title = 'Number of Awards'))
+
+
+```
+*Key Takeaways*
+
+*This graph clearly depicts that RCB as a team always relied on individual brilliance over a single team of 11 players performance as they depend heavily on Virat Kohli, Chris Gayle and ABD.*
+
+```{r, message = FALSE, warning = FALSE}
+
+rcb_performance <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB") %>%
+  group_by(season) %>%
+  summarise(Wins = sum(winner == "RCB"), Matches = n()) %>%
+  mutate(Win_Rate = Wins / Matches * 100)
+
+# Plot
+g <- ggplot(rcb_performance, aes(x = season, y = Win_Rate)) +
+  geom_line(color = "darkred") +
+  geom_point(color = "black") +
+  labs(title = "RCB Win Rate Over the Seasons", x = "Season", y = "Win Rate (%)")
+ggplotly(g)
+
+```
+*Key Takeaways*
+
+*The scatter plot presents the win rate percentage of Royal Challengers Bangalore (RCB) across various IPL seasons. Observing the distribution of data points, there's a noticeable variability in RCB's performance over the years. The win rate peaks at certain seasons, suggesting periods of strong performance, while in other seasons, the rate drops, indicating less successful campaigns. The plot doesn't show a consistent upward or downward trend, which could imply that RCB's success in the league fluctuates rather than follows a clear trajectory of improvement or decline.*
+
+
+```{r, message = FALSE, warning = FALSE}
+
+star_performers <- ipl %>%
+  filter(season %in% c(2009, 2011, 2016), winner == "RCB") %>%
+  group_by(season, pom) %>%
+  summarise(Times_POM = n()) %>%
+  filter(Times_POM == max(Times_POM))
+
+# Plot
+g <- ggplot(star_performers, aes(x = pom, y = Times_POM, fill = as.factor(season))) +
+  geom_col(position = "dodge") +
+  labs(title = "Star Performers in 2009, 2011, 2016", x = "Player of the Match", y = "Count")
+ggplotly(g)
+
+```
+*Key Takeaways*
+
+*2009, 2011 and 2016 RCB had 3 key MVPs - Jacques Kallis, Chris Gayle & Virat Kohli who played a very important role in reaching the finals of the tournament but again could'nt cross the finish line and are still waiting for their elusive taste of their very first win in IPL tournament*
+
+```{r, message = FALSE, warning = FALSE}
+
+# Calculate run rate
+run_rate_season <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB") %>%
+  group_by(season) %>%
+  summarise(Total_Runs = sum(home_runs) + sum(away_runs),
+            Total_Overs = sum(home_overs) + sum(away_overs),
+            Average_Run_Rate = Total_Runs / Total_Overs)
+
+# Plot
+g <- ggplot(run_rate_season, aes(x = season, y = Average_Run_Rate)) +
+  geom_line(color = "green") +
+  geom_point(color = "red") +
+  labs(title = "Average Run Rate Over Seasons for RCB", x = "Season", y = "Run Rate")
+ggplotly(g)
+
+
+```
+*Key Takeaways*
+
+*This graph clearly shows how the game of cricket has evolved over the years and batman have had a greater say/impact on how the game goes on. During the year 2016 RCB had a brilliant season where in their batsman played a key role in putting in more runs on the board and that almost made sure they are winning the game.*
+
+```{r, message = FALSE, warning = FALSE}
+# Boundary comparison
+boundary_stats <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB") %>%
+  group_by(season) %>%
+  summarise(Total_Boundaries = sum(home_boundaries) + sum(away_boundaries))
+
+# Plot
+g <- ggplot(boundary_stats, aes(x = season, y = Total_Boundaries)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  labs(title = "Total Boundaries Hit by RCB per Season", x = "Season", y = "Boundaries")
+ggplotly(g)
+
+
+```
+*Few extra Analysis on the IPL game over the years*
+
+
+```{r, message = FALSE, warning = FALSE}
+
+# Filter data for RCB matches
+rcb_matches <- ipl %>%
+  filter(home_team == "RCB" | away_team == "RCB")
+
+# Calculate wins and losses
+rcb_performance <- rcb_matches %>%
+  mutate(rcb_won = ifelse(winner == "RCB", 1, ifelse(winner == "", 0, -1))) %>%
+  group_by(season) %>%
+  summarise(total_wins = sum(rcb_won == 1, na.rm = TRUE),
+            total_losses = sum(rcb_won == -1, na.rm = TRUE),
+            no_results = sum(rcb_won == 0, na.rm = TRUE), .groups = 'drop') %>%
+  arrange(desc(season))
+
+# Plotting RCB's performance over seasons
+ggplot(rcb_performance, aes(x = season)) +
+  geom_bar(aes(y = total_wins), stat = "identity", fill = "green") +
+  geom_bar(aes(y = -total_losses), stat = "identity", fill = "red") +
+  labs(title = "RCB Season Performance (Wins/Losses)", x = "Season", y = "Number of Matches")
+
+
+```
+
+*Key Takeaways*
+
+*The bar chart visualizes Royal Challengers Bangalore (RCB)'s win-loss record over several IPL seasons. Green bars represent the number of matches won in a season, while red bars indicate the number of losses. The lengths of the bars suggest the relative success or difficulty RCB had each year. It seems that in some years RCB experienced more wins than losses, as indicated by taller green bars, while in other seasons, the red bars are more prominent, denoting a challenging season with more losses. The chart serves as a quick visual summary of the team's performance highs and lows throughout the observed time frame.*
+
+
+```{r, message = FALSE, warning = FALSE}
+
+# Venue performance
+venue_performance <- ipl %>%
+  filter(home_team == "RCB") %>%
+  group_by(venue_name) %>%
+  summarise(wins = sum(winner == "RCB", na.rm = TRUE), matches = n(), .groups = 'drop') %>%
+  mutate(win_rate = wins / matches)
+
+# Plotting venue performance
+ggplot(venue_performance, aes(x = reorder(venue_name, win_rate), y = win_rate)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  coord_flip() +  # Flip coordinates for horizontal bars
+  labs(title = "RCB Performance by Venue", x = "Venue", y = "Win Rate")
+
+# Convert ggplot object to plotly for interactivity
+interactive_plot <- ggplotly(g)
+
+# Render the interactive plot
+interactive_plot
+  
+```
+
+
+*Introduction*
+
+**In this project, I delve into the vast IPL dataset to uncover trends and insights into the performances of teams and players. My goal is to evaluate how factors such as toss decisions and individual contributions affect match outcomes. The dataset covers matches from 2008 to 2023, offering a comprehensive look at the IPL's history through various statistical lenses and visualizations.**
+
+*Project Vision*
+
+**Initially, I envisioned a straightforward analysis focusing on general performance metrics. However, as the project unfolded, my vision evolved to a more nuanced inquiry—especially the strategic nuances behind toss decisions and the pivotal roles played by key figures such as Virat Kohli. This shift was prompted by intriguing patterns found in the early stages of data exploration.**
+
+*Explanation of Project Expansion*
+
+**What started as a module project limited to basic visualization techniques has now expanded into a broader analysis. I incorporated interactive visualizations to enable a dynamic exploration of the data. I also undertook a detailed study of team performances across seasons and scrutinized the statistical impact of players' performances on their team's success, thereby enhancing the depth of the original project.**
+
+*Reflection and Conclusion*
+
+**Upon reflection, I consider the successful visualization of complex IPL data and the narrative constructed around strategic decisions as significant accomplishments. I faced challenges in data cleaning and ensuring the interpretive accuracy of advanced statistical patterns. This project has underscored the rich stories that data can tell in sports, beyond mere numbers. It has also set the stage for future projects, where I aim to delve into predictive analytics and provide foresight into IPL match outcomes.**
+
+*My Take on the analysis made*
+
+**Reflecting on my experience with the INSH 5302 course, creating interactive R Markdown visualizations of the IPL dataset was incredibly enriching and enjoyable. This course vividly highlighted the importance of data storytelling, demonstrating how effectively visualized data can communicate complex insights in an intuitive and impactful way. Through this project, I deepened my understanding of R and learned to harness the power of plotly and ggplot2 to make data more accessible and engaging. The ability to explore IPL performances interactively not only solidified my data manipulation skills but also sparked my creativity in presenting data stories. It's clear that mastering these tools enhances the narrative quality of data analysis, making it a crucial skill set for any data scientist.**
+
+# References
+
+1. https://www.iplt20.com/stats/2024
+2. www.cricbuzz.com 
+3. www.wikipedia.com
+
+* * *
+
+## All done!
+
+Knit the completed R Markdown file as a HTML document (click the "Knit" button at the top of the script editor window) and upload it to the submission portal on Canvas.
